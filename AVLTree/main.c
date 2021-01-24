@@ -31,7 +31,7 @@ NODE* _insert(AVL_TREE *tree, NODE *root, NODE *newPtr, bool *taller){
     if (*taller)
       switch (root->bal){
         case LH:
-          root = insLeftBal(root, taller); break
+          root = insLeftBal(root, taller); break;
         case EH:
           root->bal = LH; break;
         case RH:
@@ -60,12 +60,12 @@ NODE* _delete(AVL_TREE *tree, NODE *root, void *dltKey, bool *shorter, bool *suc
     *shorter = false; *success = false; return NULL;
   }
 
-  if (tree->compare(dltKey, eoot->dataPtr) < 0){
+  if (tree->compare(dltKey, root->dataPtr) < 0){
     root->left = _delete(tree, root->left, dltKey, shorter, success);
     if (*shorter) root = dltRightBal(root, shorter);
   } else if (tree->compare(dltKey, root->dataPtr) > 0){
     root->right = _delete(tree, root->right, dltKey, shorter, success);
-    if (*shoter) root = dltLeftBal(root, shorter);
+    if (*shorter) root = dltLeftBal(root, shorter);
   } else {
     dltPtr = root;
     if (!root->right){
@@ -79,7 +79,7 @@ NODE* _delete(AVL_TREE *tree, NODE *root, void *dltKey, bool *shorter, bool *suc
         exchPtr = root->left;
         while (exchPtr->right) exchPtr = exchPtr->right;
         root->dataPtr = exchPtr->dataPtr;
-        root->left = _delete(tree,root->left,exch->dataPtr,shorter,success);
+        root->left = _delete(tree,root->left,exchPtr->dataPtr,shorter,success);
         if (*shorter) root = dltRightBal(root, shorter);
       } // end if !root->left
 
@@ -175,9 +175,42 @@ NODE* dltLeftBal(NODE *root, bool *shorter){
 }
 
 NODE* dltRightBal(NODE *root, bool *shorter){
+  NODE *rightTree; NODE *leftTree;
+  switch (root->bal){
+    case LH:
+      root->bal = EH; break;
+    case EH:
+      root->bal = RH; *shorter = false; break;
+    case RH:  
+      rightTree = root->right;
+      if (rightTree->bal == LH){
+        leftTree = rightTree->left;
+        switch (leftTree->bal){
+          case LH:
+            rightTree->bal = RH; root->bal = EH; break;
+          case EH:
+            root->bal= EH; rightTree->bal = EH; break;
+          case RH:
+            root->bal = LH; rightTree->bal = EH; break;
+        } // end-switch
+        leftTree->bal = EH;
+        // rotate right then left
+        root->right = rotateRight(rightTree);
+        root = rotateLeft(root);
 
+      } else {
+        switch(rightTree->bal){
+          case LH:
+          case RH:
+            root->bal = EH; rightTree->bal = EH; break;
+          case EH:
+            root->bal = RH; rightTree->bal = LH; *shorter = false; break;
+        } // end-switch
+        root = rotateLeft(root);
+      } // end-if
+  } // end-switch
+  return root;
 }
-
 
 AVL_TREE* AVL_Create(int (*compare)(void *arg1, void *arg2) ){
   AVL_TREE *tree = (AVL_TREE*)malloc(sizeof(AVL_TREE));
