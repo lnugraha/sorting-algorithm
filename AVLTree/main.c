@@ -20,11 +20,72 @@ typedef struct{
 } AVL_TREE;
 
 NODE* _insert(AVL_TREE *tree, NODE *root, NODE *newPtr, bool *taller){
-
+  if (!root){
+    root = newPtr;
+    *taller = true;
+    return root;
+  }
+  
+  if (tree->compare(newPtr->dataPtr, root->dataPtr) < 0){
+    root->left = _insert(tree, root->left, newPtr, taller);
+    if (*taller)
+      switch (root->bal){
+        case LH:
+          root = insLeftBal(root, taller); break
+        case EH:
+          root->bal = LH; break;
+        case RH:
+          root->bal = EH; *taller = false; break;
+      } // end switch
+    return root;
+  } else {
+    root->right = _insert(tree, root->right, newPtr, taller);
+    if (*taller)
+      switch (root->bal){
+        case LH:
+          root->bal = EH; *taller = false; break;
+        case EH:
+          root->bal = RH; break;
+        case RH:
+          root = insRightBal(root, taller); break;
+      } // end-switch
+    return root;
+  } // end-if
+  return root;
 }
 
 NODE* _delete(AVL_TREE *tree, NODE *root, void *dltKey, bool *shorter, bool *success){
-  
+  NODE *dltPtr; NODE *exchPtr; NODE *newRoot;
+  if(!root){
+    *shorter = false; *success = false; return NULL;
+  }
+
+  if (tree->compare(dltKey, eoot->dataPtr) < 0){
+    root->left = _delete(tree, root->left, dltKey, shorter, success);
+    if (*shorter) root = dltRightBal(root, shorter);
+  } else if (tree->compare(dltKey, root->dataPtr) > 0){
+    root->right = _delete(tree, root->right, dltKey, shorter, success);
+    if (*shoter) root = dltLeftBal(root, shorter);
+  } else {
+    dltPtr = root;
+    if (!root->right){
+      newRoot = root->left; *success = true; *shorter = true; 
+      free(dltPtr); return newRoot;
+    } else {
+      if (!root->left){
+        newRoot = root->right; *success = true; *shorter = true;
+        free(dltPtr); return newRoot;
+      } else { // delete nodes that have 2 sub trees
+        exchPtr = root->left;
+        while (exchPtr->right) exchPtr = exchPtr->right;
+        root->dataPtr = exchPtr->dataPtr;
+        root->left = _delete(tree,root->left,exch->dataPtr,shorter,success);
+        if (*shorter) root = dltRightBal(root, shorter);
+      } // end if !root->left
+
+    } // end if !root->right
+  }
+  return root;
 }
 
 void* _retrieve(AVL_TREE *tree, void *keyPtr, NODE *root){
@@ -74,10 +135,49 @@ NODE* rotateRight(NODE *root){
   return tempPtr;
 }
 
-NODE* insLeftBal(NODE *root, bool *taller);
-NODE* insRightBal(NODE *root, bool *taller);
-NODE* dltLeftBal(NODE *root, bool *shorter);
-NODE* dltRightBal(NODE *root, bool *shorter);
+NODE* insLeftBal(NODE *root, bool *taller){
+  NODE *rightTree; NODE *leftTree;
+  leftTree = root->left;
+  switch(leftTree->bal){
+    case LH:
+      root->bal = EH; // Left hight -- rotate right
+      leftTree->bal = EH;
+      root = rotateRight(root);
+      *taller = false;
+      break;
+    case EH:
+      printf("Error on insLeftBal\n");
+      exit(100);
+    case RH:
+      rightTree = leftTree->right;
+      switch(rightTree->bal){
+        case LH:
+          root->bal = RH; leftTree->bal = EH; break;
+        case EH:
+          root->bal = EH; leftTree->bal = LH; break;
+        case RH:
+          root->bal = EH; leftTree->bal = LH; break;
+      } // end of switch rightTree
+      rightTree->bal = EH;
+      root->left = rotateLeft(leftTree); // rotate left
+      root = rotateRight(root); // rotate right
+      *taller = false;
+  }// end switch
+  return root;
+}
+
+NODE* insRightBal(NODE *root, bool *taller){
+
+}
+
+NODE* dltLeftBal(NODE *root, bool *shorter){
+
+}
+
+NODE* dltRightBal(NODE *root, bool *shorter){
+
+}
+
 
 AVL_TREE* AVL_Create(int (*compare)(void *arg1, void *arg2) ){
   AVL_TREE *tree = (AVL_TREE*)malloc(sizeof(AVL_TREE));
